@@ -3,11 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+data/*.db
+data/*.txt
 # C extensions
 *.so
-data/
-*.db
-*.txt
+
 # Distribution / packaging
 .Python
 env/
