@@ -281,26 +281,26 @@ if __name__ == "__main__":
 	if len(argv)>1:
 		if argv[1] == "clear":
 			uis.update_all_flag()
+		elif argv[1] == "clearflag":
+			uis.update_flag([(0,1,argv[2])])
 		elif argv[1] == "coin":
 			res = uis.get_user_score(argv[2])
 			for user in res:
-				print("Tel: {},  Balance: {}, Coin:{} Invite Code: {}".format(user[1], user[2], user[3], user[4]))
+				print("MemberId: {}, Tel: {},  Balance: {}, Coin:{} Invite Code: {}".format(user[0], user[1], user[2], user[3], user[4]))
 		elif argv[1] == "balance":
 			res = uis.get_user_balance(argv[2])
 			for user in res:
-				print("Tel: {},  Balance: {}, Coin:{} Invite Code: {}".format(user[1], user[2], user[3], user[4]))
+				print("MemberId: {}, Tel: {},  Balance: {}, Coin:{} Invite Code: {}".format(user[0], user[1], user[2], user[3], user[4]))
 		elif argv[1] == "tel":
 			res = uis.get_user_mobile(argv[2])
 			for user in res:
-				print("Mobile: {},  Balance: {}, Coin:{} Invite Code: {}".format(user[1], user[2], user[3], user[4]))
+				print("MemberId: {}, Tel: {},  Balance: {}, Coin:{} Invite Code: {}".format(user[0], user[1], user[2], user[3], user[4]))
 		elif argv[1] == "all":
 			all_user = uis.get_all()
 			for user in all_user:
-				print("Mobile: {},  Balance: {}, Coin:{} Invite Code: {}".format(user[1], user[2], user[3], user[4]))
+				print("MemberId: {}, Tel: {},  Balance: {}, Coin:{} Invite Code: {}".format(user[0], user[1], user[2], user[3], user[4]))
 	else:
 		all_user = uis.get_all()
-		#for user in all_user:
-		#	print(user)
 		already_user = uis.get_all_already_read_user()
 		not_user = uis.get_all_not_read_user()
 		reading_user = uis.get_all_reading_user()
@@ -316,7 +316,7 @@ if __name__ == "__main__":
 				uis.update_flag([(0, 1, user[0])])
 			else:
 				uis.update_flag([(2, 1, user[0])])
-			print("User:{} has already reads {}".format(user[1], res))
+			print("MemberId: {}, Tel: {},  Balance: {}, Coin:{} Invite Code: {}".format(user[0], user[1], user[2], user[3], user[4]))
 		#print("注册用户:{}".format(len(register_user)))
 		#for user in register_user:
 		#	print("Tel:{}, Invite Code:{}".format(user[1], user[4]))

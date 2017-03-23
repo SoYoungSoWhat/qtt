@@ -82,7 +82,7 @@ class YIMA:
 		while sms=='3001':
 			r = requests.get(self.url, params=body)
 			sms = r.content.decode("utf-8")
-			#print ("message:%s"%sms)
+			print ("message:%s"%sms)
 			time.sleep(5)
 		sms=sms.split('|')[1]
 		return sms
@@ -97,7 +97,7 @@ class YIMA:
 			return code
 		elif self.itemid == "2674":
 			index = sms.find("。")
-			print("index:{}".format(index))
+			#print("index:{}".format(index))
 			return sms[index-4:index]
 
 			

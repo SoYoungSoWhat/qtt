@@ -114,8 +114,18 @@ class JZ(object):
 		self.clear_frame()
 		#4. get code 
 		code = pytesseract.image_to_string(self.image)
-		#draw.save(self.output)
-		return code
+		res_code = ""
+		if len(code) >= 4:
+			for i in range(len(code)):
+				char_i = code[i]
+				if char_i.isdigit():
+					res_code += char_i
+			if len(res_code) == 4:
+				return res_code
+			else:
+				return None
+		else:
+			return None
 		
 			
 class QTT(object):
@@ -185,6 +195,7 @@ class QTT(object):
 					else:
 						flag = False
 						break
+		return total_read
 	'''
 	##########################################
 	#	util methods
@@ -624,7 +635,10 @@ class QTT(object):
 			
 		jz = JZ(path)
 		code = jz.get_code()
-		return data['id'], code
+		if code:
+			return data['id'], code
+		else:
+			return data['id'], None
 		#print(res.text)
 	
 	def get_captcha_get_sms(self, img_captcha_id, img_captcha):
@@ -681,7 +695,7 @@ class QTT(object):
 		sign = self.get_sign(params[0:-1])
 		data['sign'] = sign
 		res = requests.post(url, headers=headers, data=data)
-		print(res.text)
+		#print(res.text)
 		data = json.loads(res.text)
 		self.token = data['data']['token']
 		return data['data']
@@ -717,7 +731,7 @@ class QTT(object):
 		data = json.loads(res.text)
 		return data
 		
-def register_user():
+def register_user(invite_index):
 	'''
 		register a user
 	'''
@@ -735,9 +749,11 @@ def register_user():
 	code = -1
 	while  code != 0:
 		#4. get img captcha
-		time.sleep(3)
-		id, captcha = qtt.get_captcha_get_img()
-		print("id:{} captcha:{}".format(id, captcha))
+		captcha = None
+		while captcha is None:
+			time.sleep(3)
+			id, captcha = qtt.get_captcha_get_img()
+			print("id:{} captcha:{}".format(id, captcha))
 		#5. get sms
 		time.sleep(3)
 		code = qtt.get_captcha_get_sms(id, captcha)
@@ -746,7 +762,7 @@ def register_user():
 	#7. register
 	time.sleep(1)
 	data = qtt.post_member_register(sms_code)
-	print(data)
+	print("register result:{}".format(data))
 	time.sleep(2)
 	qtt.get_member_info()
 	member_info = qtt.member_info
@@ -758,28 +774,32 @@ def register_user():
 	data = [(member_info['member_id'],)]
 	uis.save_flag(data)
 	#8. add invite
-	time.sleep(2)
-	data = qtt.post_member_invite_code()
-	print(data)
+	time.sleep(4)
+	invite_codes = ["A5573044", "A5571430"]
+			
+	data = qtt.post_member_invite_code(invite_codes[invite_index])
+	print("add master result:{}".format(data))
 	
 	
 class MyThread(threading.Thread):
 	'''
 		Thread
 	'''
-	def __init__(self, name):
+	delay = 8
+	def __init__(self, name, iter_num):
 		'''
 			init a thread
 		'''
 		threading.Thread.__init__(self)
 		self.name = "Thread-"+name
+		self.num = iter_num
 	
 	def run(self):
 		'''
 			Main
 		'''
 		global lock, uis
-		for i in range(3):
+		for i in range(self.num):
 			print("{} {} times start....".format(self.name, i))
 			print("{} 1. get channel list".format(self.name))
 			#qqt.get_content_channel_list()
@@ -792,54 +812,71 @@ class MyThread(threading.Thread):
 					uis.update_flag(read_flag)
 				lock.release()
 			if user:
-				qqt = QTT(str(user[1]), str(user[6]))
-				#2. login
-				time.sleep(2)
-				print("{} 2. login tel: {}  device: {}".format(self.name, user[1], user[6]))
-				qqt.get_member_login()
-				#3. get member info
-				time.sleep(3)
-				print("{} 3. get member info".format(self.name))
-				qqt.get_member_info()
-				time.sleep(2)
-				mission_list = qqt.get_mission_list()
-				#print(mission_list)
-				daily_has_read_count = mission_list['daily'][0]['count']
-				print("{} {} has already read {}".format(self.name, qqt.telephone, daily_has_read_count))
-				sign_in_today = mission_list['signIn']['today']
-				treasure_box_is_active = mission_list['treasureBox']['isActive']
-				#print(mission_list)
-				#4. sign in
-				if not sign_in_today:
-					time.sleep(1)
-					print("{} 4. sign in".format(self.name))
-					qqt.post_mission_signin()
-				#5. open a box
-				if treasure_box_is_active:
-					time.sleep(3)
-					print("{} 5. open a box".format(self.name))
-					qqt.post_mission_receive_box()
-				#6. read content
-				time.sleep(3)
-				print("{} 6. read content".format(self.name))
-				
-				qqt.read_list(12 - daily_has_read_count)
-				if lock.acquire():
-					#update userinfo
-					uis.update([(qqt.member_info['balance'], qqt.member_info['coin'], 
-						qqt.member_info['member_id']
-					)])
-					#
-					read_record = [(qqt.member_info['member_id'], int(time.time()), 12)]
-					uis.save_read_record(read_record)
-#					#					
-					read_flag = [(2, 1, qqt.member_info['member_id'])]
-					uis.update_flag(read_flag)
-					lock.release()
+				self.read_one_user(user)
 			else:
 				print("No User...")
 			print("{} {} times end....".format(self.name, i))
 		print("{} end....".format(self.name))
+		
+	def read_one_user(self, user):
+		'''
+			read a user
+			args:
+				user : user info
+		'''
+		try:
+			qqt = QTT(str(user[1]), str(user[6]))
+			#2. login
+			time.sleep(2)
+			print("{} 2. login tel: {}  device: {}".format(self.name, user[1], user[6]))
+			qqt.get_member_login()
+			#3. get member info
+			time.sleep(3)
+			print("{} 3. get member info".format(self.name))
+			qqt.get_member_info()
+			time.sleep(2)
+			mission_list = qqt.get_mission_list()
+			#print(mission_list)
+			daily_has_read_count = mission_list['daily'][0]['count']
+			print("{} {} has already read {}".format(self.name, qqt.telephone, daily_has_read_count))
+			sign_in_today = mission_list['signIn']['today']
+			treasure_box_is_active = mission_list['treasureBox']['isActive']
+			#print(mission_list)
+			#4. sign in
+			if not sign_in_today:
+				time.sleep(1)
+				print("{} 4. sign in".format(self.name))
+				qqt.post_mission_signin()
+			#5. open a box
+			if treasure_box_is_active:
+				time.sleep(3)
+				print("{} 5. open a box".format(self.name))
+				qqt.post_mission_receive_box()
+			#6. read content
+			time.sleep(3)
+			print("{} 6. read content".format(self.name))
+			
+			total_read = qqt.read_list(12 - daily_has_read_count)
+			print("{} read over. total read: {}".format(self.name, total_read))
+			if lock.acquire():
+				#update userinfo
+				uis.update([(qqt.member_info['balance'], qqt.member_info['coin'], 
+					qqt.member_info['member_id']
+				)])
+				#
+				read_record = [(qqt.member_info['member_id'], int(time.time()), total_read)]
+				uis.save_read_record(read_record)
+				read_flag = [(2, 1, qqt.member_info['member_id'])]
+				uis.update_flag(read_flag)
+				lock.release()
+		except:
+			print("Exception, Sleep: {}".format(self.delay))
+			time.sleep(self.delay)
+			self.delay *= 2
+			self.read_one_user(user)
+		else:
+			self.delay = 8
+	
 
 def luhn_check(num):
 	'''
@@ -895,11 +932,12 @@ def init_data():
 		
 		
 	
-def main_method():
+def main_method(thread_num=1, iter_num=5):
 	thread_list = []
-	THREAD_NUM = 7
+	THREAD_NUM = thread_num
+	ITER_NUM = iter_num
 	for i in range(0, THREAD_NUM):
-		mt = MyThread(str(i))
+		mt = MyThread(str(i), ITER_NUM)
 		mt.setDaemon(True)
 		thread_list.append(mt)
 	
@@ -914,7 +952,10 @@ def main_method():
 if "__main__" == __name__:
 	if len(argv)>1:
 		if argv[1] == "r":
-			register_user()
+			invite_index = int(argv[2])
+			register_user(invite_index)
+		elif argv[1].isdigit():
+			main_method(int(argv[1]), int(argv[2]))
 	else:
 		main_method()
 	#img_name = argv[1]
