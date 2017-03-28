@@ -662,6 +662,7 @@ class QTT(object):
 		}
 		
 		res = requests.get(url, headers=headers)
+		
 		data = json.loads(res.text)['data']
 		path = "tmp.jpeg"
 		decode_png = base64.decodestring(data['data'].encode())
@@ -793,6 +794,8 @@ def register_user(invite_index):
 		#5. get sms
 		time.sleep(3)
 		code = qtt.get_captcha_get_sms(id, captcha)
+		if code == -103:
+			exit(-1)
 	#6. get sms code
 	sms_code = ym.get_code()
 	#7. register
