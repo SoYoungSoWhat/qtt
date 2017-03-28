@@ -795,7 +795,11 @@ def register_user(invite_index):
 		time.sleep(3)
 		code = qtt.get_captcha_get_sms(id, captcha)
 		if code == -103:
-			exit(-1)
+			mobile = ym.get_mobile()
+			print("mobile: {}".format(mobile))
+			#3. create a qtt
+			device_code = gen_imme()
+			qtt = QTT(mobile, device_code)
 	#6. get sms code
 	sms_code = ym.get_code()
 	#7. register
