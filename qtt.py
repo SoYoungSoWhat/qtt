@@ -481,6 +481,42 @@ class QTT(object):
 		print(res.text)
 		return json.loads(res.text)
 
+	def post_mission_receive_gift(self, gift_id):
+		'''
+			receive gift
+		'''
+		time_now = str(int(time.time()))
+		url = "http://api.1sapp.com/mission/receiveGift"
+		headers = {
+			"Host": "api.1sapp.com",
+			"Connection": "keep-alive",
+			"User-Agent": "qukan_android",
+			"Accept-Encoding": "gzip",
+			"Accept-Language": "zh-CN,en-US;q=0.8",
+		}
+		data = {
+			"OSVersion" : "4.4.2",
+			"deviceCode" : self.device_code,
+			"dtu" : "004",
+			"gift_id" : gift_id,
+			"lat" : self.lat,
+			"lon" : self.lon,
+			"network" : "wifi",
+			"time" : time_now,
+			"token" : self.token,
+			"uuid" : self.uuid1,
+			"version" : "20200"
+		}
+		params = ""
+		for key,value in data.items():
+			params += key+"="+value+"&"
+		sign = self.get_sign(params[0:-1])
+		data['sign'] = sign
+		res = requests.post(url, headers=headers, data=data)
+		#print(res.text)
+		return json.loads(res.text)
+	
+	
 	def get_content_list(self, cid):
 		'''
 			get content list
@@ -834,6 +870,20 @@ class MyThread(threading.Thread):
 			time.sleep(3)
 			print("{} 3. get member info".format(self.name))
 			qqt.get_member_info()
+			gift_notice = qqt.member_info["gift_notice"]
+			print("gift_notice:{}".format(gift_notice))
+			if gift_notice:
+				id = gift_notice["id"]
+				time.sleep(2)
+				print("id: {}".format(id))
+				result = qqt.post_mission_receive_gift(id)
+				print("result: {}".format(result))
+				next_id = result['data']["next_id"]
+				print("{} 3.1 get amount {}".format(self.name, result["data"]["amount"]))
+				if next_id != 0:
+					time.sleep(2)
+					result = qqt.post_mission_receive_gift(str(next_id))
+					print("{} 3.1 get amount {}".format(self.name, result["data"]["amount"]))
 			time.sleep(2)
 			mission_list = qqt.get_mission_list()
 			#print(mission_list)
@@ -858,6 +908,7 @@ class MyThread(threading.Thread):
 			
 			total_read = qqt.read_list(12 - daily_has_read_count)
 			print("{} read over. total read: {}".format(self.name, total_read))
+			qqt.get_member_info()
 			if lock.acquire():
 				#update userinfo
 				uis.update([(qqt.member_info['balance'], qqt.member_info['coin'], 
@@ -893,7 +944,7 @@ def gen_imme():
 	TAC='867922'
 	FAC='02'
 	SNR=565583
-	imme=TAC+FAC+str(SNR+random.randint(1,1000))
+	imme=TAC+FAC+str(SNR+random.randint(1,10000))
 	return (imme+str(luhn_check(imme)))
 	
 def init_data():

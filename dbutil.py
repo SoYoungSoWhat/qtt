@@ -211,4 +211,7 @@ class DBUtil(object):
 	###############################################################
 	####			数据库操作CRUD	 END
 	###############################################################
-
+if "__main__" == __name__:
+	print(os.getcwd())
+	db = DBUtil("data/userinfo.db", "userinfo", flag=True)
+	print("main....")
