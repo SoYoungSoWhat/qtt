@@ -476,7 +476,7 @@ class QTT(object):
 		}
 		
 		res = requests.get(url, headers=headers)
-		print(res.text)
+		# print(res.text)
 		data = json.loads(res.text)['data']
 		self.token = data['token']
 		
@@ -502,6 +502,7 @@ class QTT(object):
 		
 		res = requests.get(url, headers=headers)
 		data = json.loads(res.text)['data']
+		# print(data)
 		data.pop('menu')
 		data.pop('avatar')
 		data.pop('h5_url')
@@ -980,7 +981,7 @@ class MyThread(threading.Thread):
 				if user:
 					read_flag = [(1, 1, user[0])]
 					uis.update_flag(read_flag)
-					tokens = uis.get_token([(user[0],)])
+					tokens = uis.get_token(user[0])
 					token = tokens[0][2]
 				lock.release()
 			if user:
@@ -996,16 +997,17 @@ class MyThread(threading.Thread):
 			args:
 				user : user info
 		'''
+		# print("token:{}".format(token))
 		try:
 			mobile = Mobile(user[1])
 			
 			qqt = QTT(mobile)
-			qqt.device_code = user[6]
+			qqt.device_code = str(user[6])
 			#2. login
 			# time.sleep(2)
 			print("{} 2. login tel: {}  device: {}".format(self.name, user[1], user[6]))
 			# qqt.get_member_login()
-			qtt.token = token
+			qqt.token = token
 			#3. get member info
 			time.sleep(3)
 			print("{} 3. get member info".format(self.name))
@@ -1064,11 +1066,15 @@ class MyThread(threading.Thread):
 			print("Exception, Sleep: {}".format(self.delay))
 			time.sleep(self.delay)
 			self.delay *= 2
-			self.read_one_user(user)
+			self.read_one_user(user, token)
 		else:
 			self.delay = 8
 			
 def save_one(tel):
+	'''
+		save one userinfo
+		userinfo, userflag, token
+	'''
 	mobile = Mobile(tel)
 	qtt = QTT(mobile)
 	print(tel)
@@ -1087,47 +1093,104 @@ def save_one(tel):
 	
 	data = [(member_info['member_id'], qtt.token)]
 	uis.save_token(data)
-	#8. add invite
-	time.sleep(4)
-	invite_codes = ["A5573044", "A5571430"]
-			
-	data = qtt.post_member_invite_code(invite_codes[invite_index])
-	print("add master result:{}".format(data))
+
+def update_one_user(tel):
+	users = uis.get_user_mobile(tel)
+	for user in users:
+		member_id = user[0]
+		device_code = "867922025655835"
+		token = "d67apvuDnbIFutu7jiIMNhS7S90pBW4gk3B5Z8gaMY_iXTyLqRfyRjIuwUggSS-YLATcI9Xf0x1k8fs"
+		uis.update_user_info(member_id, device_code, token)
+
 	
 def update_tokens():
 	'''
 		init data
 	'''
+	print("update tokens")
 	users = uis.get_all()
 	for user in users:
+		if user[1] == "15503820160":
+			continue
 		mobile = Mobile(user[1])
 		qtt = QTT(mobile)
 		qtt.device_code = str(user[6])
-		# qtt.show()
 		time.sleep(2)
-		# print("2. login {}".format(tel))
 		qtt.get_member_login()
-		# user = uis.get_user_mobile(tel)[0]
-		# token = uis.get_token(user[0])
-		# print(token)
-		# print("token: {}".format(token[0][2]))
-		# qtt.token = token[0][2]
-		
-		
 		#3. get member info
 		time.sleep(2)
 		print("3. get member info")
 		qtt.get_member_info()
 		member_info = qtt.member_info
 		print(member_info)
-		data = [(member_info['member_id'], member_info['telephone'], member_info['balance'],
-					member_info['coin'], member_info['invite_code'], member_info['teacher_id'],
-					qtt.device_code)]
-		# uis.save(data)
 		token_data = [(member_info['member_id'], qtt.token)]
-		# data = [(member_info['member_id'],)]
-		uis.save_token(token_data)
+		uis.update_token(token_data)
 		
+def run_one(tel):
+	user = uis.get_user_mobile(tel)[0]
+	tokens = uis.get_token(user[0])
+	token = tokens[0][2]
+	mobile = Mobile(user[1])
+	qtt = QTT(mobile)
+	qtt.device_code = str(user[6])
+	#2. login
+	# time.sleep(2)
+	print("2. login tel: {}  device: {}".format(user[1], user[6]))
+	# qtt.get_member_login()
+	qtt.token = token
+	#3. get member info
+	time.sleep(3)
+	print("3. get member info")
+	qtt.get_member_info()
+	gift_notice = qtt.member_info["gift_notice"]
+	print("gift_notice:{}".format(gift_notice))
+	if gift_notice:
+		id = gift_notice["id"]
+		time.sleep(2)
+		print("id: {}".format(id))
+		result = qtt.post_mission_receive_gift(id)
+		print("result: {}".format(result))
+		next_id = result['data']["next_id"]
+		print("3.1 get amount {}".format(result["data"]["amount"]))
+		if next_id != 0:
+			time.sleep(2)
+			result = qtt.post_mission_receive_gift(str(next_id))
+			print("3.1 get amount {}".format(result["data"]["amount"]))
+	time.sleep(2)
+	mission_list = qtt.get_mission_list()
+	#print(mission_list)
+	daily_has_read_count = mission_list['daily'][0]['count']
+	print("{} has already read {}".format(qtt.telephone, daily_has_read_count))
+	sign_in_today = mission_list['signIn']['today']
+	treasure_box_is_active = mission_list['treasureBox']['isActive']
+	#print(mission_list)
+	#4. sign in
+	if not sign_in_today:
+		time.sleep(1)
+		# print("{} 4. sign in".format(self.name))
+		qtt.post_mission_signin()
+	#5. open a box
+	if treasure_box_is_active:
+		time.sleep(3)
+		# print("{} 5. open a box".format(self.name))
+		qtt.post_mission_receive_box()
+	#6. read content
+	time.sleep(3)
+	print("6. read content")
+	
+	total_read = qtt.read_list(12 - daily_has_read_count)
+	print("read over. total read: {}".format(total_read))
+	qtt.get_member_info()
+	#update userinfo
+	uis.update([(qtt.member_info['balance'], qtt.member_info['coin'], 
+		qtt.member_info['member_id']
+	)])
+	#
+	read_record = [(qtt.member_info['member_id'], int(time.time()), total_read)]
+	uis.save_read_record(read_record)
+	read_flag = [(2, 1, qtt.member_info['member_id'])]
+	uis.update_flag(read_flag)
+	
 
 	
 def main_method(thread_num=1, iter_num=5):
@@ -1152,13 +1215,18 @@ if "__main__" == __name__:
 		if argv[1] == "r":
 			invite_index = int(argv[2])
 			register_user(invite_index)
+		elif argv[1] == "init":
+			update_tokens()
 		elif argv[1] == "save":
 			tel = str(argv[2])
 			save_one(tel)
+		elif argv[1] == "update":
+			tel = str(argv[2])
+			update_one_user(tel)
+		elif argv[1] == "read":
+			tel = str(argv[2])
+			run_one(tel)
 		elif argv[1].isdigit():
 			main_method(int(argv[1]), int(argv[2]))
 	else:
-		if argv[1] == "init":
-			update_tokens()
-		else:
-			main_method()
+		main_method()

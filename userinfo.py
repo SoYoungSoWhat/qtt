@@ -69,6 +69,7 @@ class UserInfoService(object):
 			data = [(user[0], "token")]
 			self.save_token(data)
 			print("insert one")
+			
 	
 	def save_flag(self, data):
 		'''
@@ -109,6 +110,19 @@ class UserInfoService(object):
 		conn = self.db.get_conn()
 		self.db.update(conn, update_sql, data)
 
+	def update_user_info(self, member_id, device_code, token):
+		'''
+			update one user info
+			args: member_id, device_code, token
+		'''
+		update_sql = '''UPDATE userinfo
+				set device_code=? WHERE member_id=?'''
+		data = [(device_code, member_id)]
+		conn = self.db.get_conn()
+		self.db.update(conn, update_sql, data)
+		
+		self.update_token([(token, member_id)])
+		
 	def update_token(self, data):
 		'''
 			保存一条用户标志
@@ -146,9 +160,9 @@ class UserInfoService(object):
 	def delete(self, tel):
 		users = self.get_user_mobile(tel)
 		for user in users:
-			update_sql = ''' DELETE FROM tokens WHERE member_id=?'''
-			conn = self.db.get_conn()
-			self.db.update(conn, update_sql, [(user[0],)])
+			# update_sql = ''' DELETE FROM tokens WHERE member_id=?'''
+			# conn = self.db.get_conn()
+			# self.db.update(conn, update_sql, [(user[0],)])
 			update_sql = ''' DELETE FROM userflag WHERE member_id=?'''
 			conn = self.db.get_conn()
 			self.db.update(conn, update_sql, [(user[0],)])
@@ -168,6 +182,18 @@ class UserInfoService(object):
 		res = self.db.fetchall(conn, sql)
 		return res
 	
+	def get_all_tokens(self):
+		'''
+			查询所有用户信息
+		'''
+		# update_sql = ''' DELETE FROM tokens WHERE id<?'''
+		# conn = self.db.get_conn()
+		# self.db.update(conn, update_sql, [(16,)])
+		sql = '''SELECT * FROM tokens'''
+		conn = self.db.get_conn()
+		res = self.db.fetchall(conn, sql)
+		return res	
+
 	def get_all_user_read(self):
 		'''
 			查询所有read_record
@@ -356,6 +382,10 @@ if __name__ == "__main__":
 			uis.update_flag([(0,1,argv[2])])
 		elif argv[1] == "init":
 			uis.init_all_user_token()
+		elif argv[1] == "tokens":
+			tokens = uis.get_all_tokens()
+			for token in tokens:
+				print(token)
 		elif argv[1] == "saveone":
 			tel = arg[2]
 			uis.save_one_token(tel)
@@ -373,7 +403,7 @@ if __name__ == "__main__":
 		elif argv[1] == "tel":
 			res = uis.get_user_mobile(argv[2])
 			for user in res:
-				print("MemberId: {}, Tel: {},  Balance: {}, Coin:{} Invite Code: {}".format(user[0], user[1], user[2], user[3], user[4]))
+				print("MemberId: {}, Tel: {},  Balance: {}, Coin:{} Invite Code: {} ,device Code: {}".format(user[0], user[1], user[2], user[3], user[4], user[6]))
 		elif argv[1] == "all":
 			all_user = uis.get_all()
 			for user in all_user:
