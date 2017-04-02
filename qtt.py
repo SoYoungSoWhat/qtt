@@ -126,6 +126,132 @@ class JZ(object):
 				return None
 		else:
 			return None
+
+
+class Mobile(object):
+	"""
+		mobile info :
+			device_code (128bits)0x0000000035d7eb3f000000007f86fefe
+			lat  40.41276437615495
+			lon 116.67200895325377
+			mac
+			net_work
+			android_id [HUAWEIFRD-AL00, KOT49H]
+			brand [honor, samsung]
+	"""
+
+	brands = ["honor", "samsung", "xiaomi"]
+	android_ids = {
+		"honor": ["HUAWEIFRD-AL00", "HUAWEIFRD-DL00", "HONORKIW-TL00H", "HONORKIW-UL00", "HONORKIW-AL10",
+				  "HONORKIW-AL20"],
+		"samsung": ["KOT49H", "G9300", "C5000"],
+		"xiaomi": ["MI4LTE-CT", "MI4LTE-CT", "MI3", "MI5"]
+	}
+	TACs = {
+		"honor": ['867922', '862915'],
+		"samsung": ['355065', '354066'],
+		"xiaomi": ['353068', '358046']
+	}
+	FACs = ['00', '01', '02', '03', '04', '05']
+
+	os_versions = ["4.4.2", "4.4.5", "5.0.1", "5.1.1", "6.0", "7.0"]
+
+	def __init__(self, mobile="18844196047"):
+		self.mobile = mobile
+		self.lon = 116
+		self.lat = 40
+		self.brand = ""
+		self.android_id = ""
+		self.network = "WIFI"
+		self.os = ""
+		self.device_id = ""
+		self.mac = ""
+
+	def select_brand(self):
+		"""
+			select a brand
+		"""
+		brand_num = len(self.brands)
+		self.brand = self.brands[random.randint(0, brand_num - 1)]
+		aids = self.android_ids[self.brand]
+		aid_num = len(self.android_ids)
+		self.android_id = aids[random.randint(0, aid_num - 1)]
+
+	def select_os(self):
+		"""
+			select os version
+		"""
+		os_num = len(self.os_versions)
+		self.os = self.os_versions[random.randint(0, os_num - 1)]
+
+	def gen_device_id(self):
+		"""
+			generate device id 
+		"""
+		ts = self.TACs[self.brand]
+		tac_len = len(ts)
+		tac = ts[random.randint(0, tac_len - 1)]
+		fac_len = len(self.FACs)
+		fac = self.FACs[random.randint(0, fac_len - 1)]
+		snr = random.randint(10000, 599999)
+		num = tac + fac + str(snr)
+		digits = [int(x) for x in reversed(str(num))]
+		check_sum = sum(digits[1::2]) + sum((dig // 10 + dig % 10) for dig in [2 * el for el in digits[::2]])
+		check_bit = (10 - check_sum % 10) % 10
+		self.device_id = num + str(check_bit)
+
+	def gen_lat_lon(self):
+		"""
+			generate lat and lon
+		"""
+		delta = round(random.random() * random.randint(1, 4), 4)
+		sign = random.randint(1, 100)
+		if sign % 2 == 0:
+			self.lat += delta
+		else:
+			self.lat -= delta
+
+		delta = round(random.random() * random.randint(1, 4), 4)
+		sign = random.randint(1, 100)
+		if sign % 2 == 0:
+			self.lon += delta
+		else:
+			self.lon -= delta
+
+	def gen_mac(self):
+		"""
+			gen mac address
+		"""
+		add_list = []
+		for i in range(1, 7):
+			rand_str = "".join(random.sample("0123456789ABCDEF", 2))
+			add_list.append(rand_str)
+		self.mac = ":".join(add_list)
+
+	def get_mobile_info(self):
+		"""
+			get a mobile info
+		"""
+		# 1. select brand
+		self.select_brand()
+		# 2. select os
+		self.select_os()
+		# 3. device_id
+		self.gen_device_id()
+		# 4. lat lon
+		self.gen_lat_lon()
+		# 5. mac
+		self.gen_mac()
+
+	def show(self):
+		print("Mobile:")
+		print("\mobile: {}".format(self.mobile))
+		print("\tdevice_id: {} type: {}".format(self.device_id, type(self.device_id)))
+		print("\tlat: {}".format(self.lat))
+		print("\tlon: {}".format(self.lon))
+		print("\tmac: {}".format(self.mac))
+		print("\tos_version: {}".format(self.os))
+		print("\tnetwork: {}".format(self.network))
 		
 			
 class QTT(object):
@@ -135,21 +261,33 @@ class QTT(object):
 		
 	'''
 
-	def __init__(self, telephone, device_code, password="123456"):
+	def __init__(self, mobile, password="123456"):
 		'''
 			init some values
 		'''
-		self.telephone = telephone
+		mobile.get_mobile_info()
+		# mobile.show()
+		self.telephone = str(mobile.mobile)
 		self.password = str(password)
 		self.token = ""
-		self.device_code = device_code
+		self.device_code = mobile.device_id
 		self.uuid1 = str(uuid.uuid1())
 		self.member_info = {}
-		self.lat = str(self.get_lat())
-		self.lon = str(self.get_lon())
+		self.lat = str(mobile.lat)
+		self.lon = str(mobile.lon)
 		#print("lat:{}, type:{}".format(self.lat, type(self.lat)))
 		
 		self.channel_list = [{'id': 255, 'name': '推荐'}, {'id': 1, 'name': '热点'}, {'id': 6, 'name': '娱乐'}, {'id': 5, 'name': '养生'}, {'id': 2, 'name': '搞笑'}, {'id': 3, 'name': '奇闻'}, {'id': 4, 'name': '励志'}, {'id': 7, 'name': '科技'}, {'id': 8, 'name': '生活'}, {'id': 10, 'name': '财经'}, {'id': 9, 'name': '汽车'}, {'id': 11, 'name': '情感'}, {'id': 18, 'name': '星座'}, {'id': 12, 'name': '美食'}, {'id': 14, 'name': '时尚'}, {'id': 16, 'name': '旅游'}, {'id': 17, 'name': '育儿'}, {'id': 13, 'name': '体育'}, {'id': 15, 'name': '军事'}, {'id': 23, 'name': '历史'}, {'id': 27, 'name': '三农'}]
+	
+	
+	def show(self):
+		print("QTT:")
+		print("\tTEL: {}".format(type(self.telephone)))
+		print("\tPassword: {}".format(type(self.password)))
+		print("\tdevice_code: {}".format(type(self.device_code)))
+		print("\tuuid: {}".format(type(self.uuid1)))
+		print("\tlat: {}".format(type(self.lat)))
+		print("\tlon: {}".format(type(self.lon)))
 	
 	def read_list(self, read_count):
 		'''
@@ -219,22 +357,7 @@ class QTT(object):
 			two_part = param.split("=")
 			params_dic[two_part[0]] = two_part[1]
 		return params_dic
-	def get_lat(self):
-		lat=40.41336
-		r = round(random.random()*random.randint(1,3), 4)
-		s = random.randint(1, 100)
-		if s%2 == 0:
-			return lat + r
-		else:
-			return lat - r 
-	def get_lon(self):
-		lon=116.671
-		r = round(random.random()*random.randint(1,4), 4)
-		s = random.randint(1, 100)
-		if s%2 == 0:
-			return lon + r
-		else:
-			return lon - r 
+	
 	
 	def get_key(self, data):
 		'''
@@ -341,6 +464,7 @@ class QTT(object):
 		
 		time_now = str(int(time.time()))
 		url = "http://api.1sapp.com/member/login?"
+		# device_code = "%s" % self.device_code
 		params = "OSVersion=4.4.2&deviceCode="+self.device_code+"&dtu=001&lat="+self.lat+"&lon="+self.lon+"&network=wifi&password="+self.password+"&telephone="+self.telephone+"&time="+time_now+"&uuid="+self.uuid1+"&version=20200"
 		sign = self.get_sign(params)
 		url = url+params+"&sign="+sign
@@ -352,7 +476,7 @@ class QTT(object):
 		}
 		
 		res = requests.get(url, headers=headers)
-		#print(res.text)
+		print(res.text)
 		data = json.loads(res.text)['data']
 		self.token = data['token']
 		
@@ -642,7 +766,7 @@ class QTT(object):
 		print(res.text)
 	'''
 	##################################
-	#           register
+	#		   register
 	##################################
 	'''
 	def get_captcha_get_img(self):
@@ -781,8 +905,8 @@ def register_user(invite_index):
 	mobile = ym.get_mobile()
 	print("mobile: {}".format(mobile))
 	#3. create a qtt
-	device_code = gen_imme()
-	qtt = QTT(mobile, device_code)
+	mobile_obj = Mobile(mobile)
+	qtt = QTT(mobile_obj)
 	code = -1
 	while  code != 0:
 		#4. get img captcha
@@ -798,8 +922,8 @@ def register_user(invite_index):
 			mobile = ym.get_mobile()
 			print("mobile: {}".format(mobile))
 			#3. create a qtt
-			device_code = gen_imme()
-			qtt = QTT(mobile, device_code)
+			mobile_obj = Mobile(mobile)
+			qtt = QTT(mobile_obj)
 	#6. get sms code
 	sms_code = ym.get_code()
 	#7. register
@@ -811,11 +935,14 @@ def register_user(invite_index):
 	member_info = qtt.member_info
 	data = [(member_info['member_id'], member_info['telephone'], member_info['balance'],
 				member_info['coin'], member_info['invite_code'], member_info['teacher_id'],
-				device_code)]
+				qtt.device_code)]
 	uis.save(data)
 	
 	data = [(member_info['member_id'],)]
 	uis.save_flag(data)
+	
+	data = [(member_info['member_id'], qtt.token)]
+	uis.save_token(data)
 	#8. add invite
 	time.sleep(4)
 	invite_codes = ["A5573044", "A5571430"]
@@ -853,26 +980,32 @@ class MyThread(threading.Thread):
 				if user:
 					read_flag = [(1, 1, user[0])]
 					uis.update_flag(read_flag)
+					tokens = uis.get_token([(user[0],)])
+					token = tokens[0][2]
 				lock.release()
 			if user:
-				self.read_one_user(user)
+				self.read_one_user(user, token)
 			else:
 				print("No User...")
 			print("{} {} times end....".format(self.name, i))
 		print("{} end....".format(self.name))
 		
-	def read_one_user(self, user):
+	def read_one_user(self, user, token):
 		'''
 			read a user
 			args:
 				user : user info
 		'''
 		try:
-			qqt = QTT(str(user[1]), str(user[6]))
+			mobile = Mobile(user[1])
+			
+			qqt = QTT(mobile)
+			qqt.device_code = user[6]
 			#2. login
-			time.sleep(2)
+			# time.sleep(2)
 			print("{} 2. login tel: {}  device: {}".format(self.name, user[1], user[6]))
-			qqt.get_member_login()
+			# qqt.get_member_login()
+			qtt.token = token
 			#3. get member info
 			time.sleep(3)
 			print("{} 3. get member info".format(self.name))
@@ -934,61 +1067,68 @@ class MyThread(threading.Thread):
 			self.read_one_user(user)
 		else:
 			self.delay = 8
+			
+def save_one(tel):
+	mobile = Mobile(tel)
+	qtt = QTT(mobile)
+	print(tel)
+	qtt.get_member_login()
+	time.sleep(3)
+	print(qtt.token)
+	qtt.get_member_info()
+	member_info = qtt.member_info
+	data = [(member_info['member_id'], member_info['telephone'], member_info['balance'],
+				member_info['coin'], member_info['invite_code'], member_info['teacher_id'],
+				qtt.device_code)]
+	uis.save(data)
 	
-
-def luhn_check(num):
-	'''
-		check the num 
-	'''
-	digits = [int(x) for x in reversed(str(num))]
-	check_sum = sum(digits[1::2]) + sum((dig//10 + dig%10) for dig in [2*el for el in digits[::2]])
-	return (10-check_sum%10)%10
+	data = [(member_info['member_id'],)]
+	uis.save_flag(data)
 	
-def gen_imme():
-	'''
-		get an imme
-	'''
-	TAC='867922'
-	FAC='02'
-	SNR=565583
-	imme=TAC+FAC+str(SNR+random.randint(1,10000))
-	return (imme+str(luhn_check(imme)))
+	data = [(member_info['member_id'], qtt.token)]
+	uis.save_token(data)
+	#8. add invite
+	time.sleep(4)
+	invite_codes = ["A5573044", "A5571430"]
+			
+	data = qtt.post_member_invite_code(invite_codes[invite_index])
+	print("add master result:{}".format(data))
 	
-def init_data():
+def update_tokens():
 	'''
 		init data
 	'''
-	'''
-	path = "data/123.txt"
-	tel_list=[]
-	with open(path) as fo:
-		while 1:
-			line = fo.readline()
-			if not line:
-				break
-			tel_list.append(line[0:len(line)-1])
-	'''
-	tel_list = ["17085166274"]
-	for tel in tel_list:
-		device_code = gen_imme()
-		qtt = QTT(tel, device_code)
+	users = uis.get_all()
+	for user in users:
+		mobile = Mobile(user[1])
+		qtt = QTT(mobile)
+		qtt.device_code = str(user[6])
+		# qtt.show()
 		time.sleep(2)
-		print("2. login {}".format(tel))
+		# print("2. login {}".format(tel))
 		qtt.get_member_login()
+		# user = uis.get_user_mobile(tel)[0]
+		# token = uis.get_token(user[0])
+		# print(token)
+		# print("token: {}".format(token[0][2]))
+		# qtt.token = token[0][2]
+		
+		
 		#3. get member info
 		time.sleep(2)
 		print("3. get member info")
 		qtt.get_member_info()
 		member_info = qtt.member_info
+		print(member_info)
 		data = [(member_info['member_id'], member_info['telephone'], member_info['balance'],
 					member_info['coin'], member_info['invite_code'], member_info['teacher_id'],
-					device_code)]
-		uis.save(data)
+					qtt.device_code)]
+		# uis.save(data)
+		token_data = [(member_info['member_id'], qtt.token)]
+		# data = [(member_info['member_id'],)]
+		uis.save_token(token_data)
 		
-		data = [(member_info['member_id'],)]
-		uis.save_flag(data)
-		
-		
+
 	
 def main_method(thread_num=1, iter_num=5):
 	thread_list = []
@@ -1012,28 +1152,13 @@ if "__main__" == __name__:
 		if argv[1] == "r":
 			invite_index = int(argv[2])
 			register_user(invite_index)
+		elif argv[1] == "save":
+			tel = str(argv[2])
+			save_one(tel)
 		elif argv[1].isdigit():
 			main_method(int(argv[1]), int(argv[2]))
 	else:
-		main_method()
-	#img_name = argv[1]
-	#get_app_start()
-	#get_app_get_config()
-	#channel_list = get_content_channel_list()
-	#get_content_list()
-	#test_url()
-	#get_app_config(token)
-	#test_md5()
-	#test_per()
-	#test_uuid()
-	#test_key()
-	#test_amount()
-	#test_pupil()
-	#test_img()
-	#test_ocr_one(img_name)
-	#test_register()
-	#main()
-	#main_method()
-	#init_data()
-	#register_user()
-#com.jifen.qukan.view.activity.JumpActivity
+		if argv[1] == "init":
+			update_tokens()
+		else:
+			main_method()

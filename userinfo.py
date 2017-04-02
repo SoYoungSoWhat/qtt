@@ -21,6 +21,17 @@ class UserInfoService(object):
 		path = 'data/userinfo.db'
 		table = 'userinfo'
 		self.db = DBUtil(path, table)
+	
+	def create_token_table(self):
+		''' create token table'''
+		userflag_sql = '''CREATE TABLE IF NOT EXISTS `tokens` (
+				  `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+				  `member_id` int(11) NOT NULL,
+				  `token` varchar(64) NOT NULL,
+				   FOREIGN KEY(`member_id`) REFERENCES `userinfo`(`member_id`)
+				)'''
+		conn = self.db.get_conn()
+		self.db.create_table(conn, userflag_sql)
 		
 	def save(self, data):
 		'''
@@ -39,6 +50,26 @@ class UserInfoService(object):
 		conn = self.db.get_conn()
 		self.db.save(conn, save_sql, data)
 		
+	def save_token(self, data):
+		'''
+			保存一条用户标志
+			
+			args: data = [(member_id(int), token(str))]
+		'''
+		save_sql = '''INSERT INTO tokens
+				(member_id, token) VALUES (?, ?)
+			'''
+		conn = self.db.get_conn()
+		self.db.save(conn, save_sql, data)
+		
+	def init_all_user_token(self):
+		self.create_token_table()
+		users = self.get_all()
+		for user in users:
+			data = [(user[0], "token")]
+			self.save_token(data)
+			print("insert one")
+	
 	def save_flag(self, data):
 		'''
 			保存一条用户标志
@@ -77,6 +108,17 @@ class UserInfoService(object):
 				'''
 		conn = self.db.get_conn()
 		self.db.update(conn, update_sql, data)
+
+	def update_token(self, data):
+		'''
+			保存一条用户标志
+			
+			args: data = [(token(str), member_id(int))]
+		'''
+		update_sql = '''UPDATE tokens
+				set token=? WHERE member_id=?'''
+		conn = self.db.get_conn()
+		self.db.update(conn, update_sql, data)
 		
 	def update_flag(self, data):
 		'''
@@ -101,7 +143,22 @@ class UserInfoService(object):
 		conn = self.db.get_conn()
 		self.db.update(conn, update_sql, [(0,)])
 
-
+	def delete(self, tel):
+		users = self.get_user_mobile(tel)
+		for user in users:
+			update_sql = ''' DELETE FROM tokens WHERE member_id=?'''
+			conn = self.db.get_conn()
+			self.db.update(conn, update_sql, [(user[0],)])
+			update_sql = ''' DELETE FROM userflag WHERE member_id=?'''
+			conn = self.db.get_conn()
+			self.db.update(conn, update_sql, [(user[0],)])
+			update_sql = ''' DELETE FROM userread WHERE member_id=?'''
+			conn = self.db.get_conn()
+			self.db.update(conn, update_sql, [(user[0],)])
+			update_sql = ''' DELETE FROM userinfo WHERE member_id=?'''
+			conn = self.db.get_conn()
+			self.db.update(conn, update_sql, [(user[0],)])
+	
 	def get_all(self):
 		'''
 			查询所有用户信息
@@ -161,6 +218,19 @@ class UserInfoService(object):
 			return res
 		else:
 			return []
+	
+	def get_token(self, member_id):
+		sql = '''SELECT * FROM tokens WHERE member_id=?'''
+		conn = self.db.get_conn()
+		res = self.db.fetchone(conn, sql, member_id)
+		
+		if len(res)>0:
+			return res
+		else:
+			return []
+			
+
+	
 	
 	def get_register(self):
 		'''
@@ -284,6 +354,14 @@ if __name__ == "__main__":
 			uis.update_all_flag()
 		elif argv[1] == "clearflag":
 			uis.update_flag([(0,1,argv[2])])
+		elif argv[1] == "init":
+			uis.init_all_user_token()
+		elif argv[1] == "saveone":
+			tel = arg[2]
+			uis.save_one_token(tel)
+		elif argv[1] == "delete":
+			tel = argv[2]
+			uis.delete(tel)
 		elif argv[1] == "coin":
 			res = uis.get_user_score(argv[2])
 			for user in res:
@@ -301,6 +379,8 @@ if __name__ == "__main__":
 			for user in all_user:
 				print("MemberId: {}, Tel: {},  Balance: {}, Coin:{} Invite Code: {}".format(user[0], user[1], user[2], user[3], user[4]))
 	else:
+		# uis.create_token_table()
+		# uis.init_all_user_token()
 		all_user = uis.get_all()
 		already_user = uis.get_all_already_read_user()
 		not_user = uis.get_all_not_read_user()
@@ -318,9 +398,6 @@ if __name__ == "__main__":
 			else:
 				uis.update_flag([(2, 1, user[0])])
 			print("MemberId: {}, Tel: {},  Balance: {}, Coin:{} Invite Code: {}".format(user[0], user[1], user[2], user[3], user[4]))
-		#print("注册用户:{}".format(len(register_user)))
-		#for user in register_user:
-		#	print("Tel:{}, Invite Code:{}".format(user[1], user[4]))
 		
 	
 	
