@@ -424,6 +424,10 @@ if __name__ == "__main__":
 		for user in already_user:
 			res = uis.get_user_read_count(user[0])
 			print("MemberId: {}, Tel: {}, read_count: {}".format(user[0], user[1], res))
+			if res < 9:
+				uis.update_flag([(0, 1, user[0])])
+			else:
+				uis.update_flag([(2, 1, user[0])])
 		for user in reading_user:
 			res = uis.get_user_read_count(user[0])
 			if res < 9:
