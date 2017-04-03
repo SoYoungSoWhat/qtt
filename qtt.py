@@ -946,7 +946,7 @@ def register_user(invite_index):
 	uis.save_token(data)
 	#8. add invite
 	time.sleep(4)
-	invite_codes = ["A5573044", "A5571430"]
+	invite_codes = ["A5573044", "A5571430", "A18115189"]
 			
 	data = qtt.post_member_invite_code(invite_codes[invite_index])
 	print("add master result:{}".format(data))
