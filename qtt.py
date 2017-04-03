@@ -307,7 +307,7 @@ class QTT(object):
 			#print(content_list)
 			
 			for index,content in enumerate(content_list):
-				time.sleep(2)
+				time.sleep(8)
 				#print(content)
 				if "id" in content:
 					content_id = content["id"]
@@ -317,11 +317,11 @@ class QTT(object):
 				#2. get content 
 				data = self.get_content(content_id)
 				key = self.get_key(data)
-				time.sleep(3)
+				time.sleep(5)
 				#3. get content view
 				self.get_content_view(key)
 				#4. get content read
-				time.sleep(random.randint(5, 8))
+				time.sleep(random.randint(20, 30))
 				if index % 2 == 0:
 					result = self.get_content_read(key)
 					amount = self.get_read_amount(result)
