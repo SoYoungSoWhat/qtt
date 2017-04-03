@@ -289,7 +289,7 @@ class QTT(object):
 		print("\tlat: {}".format(type(self.lat)))
 		print("\tlon: {}".format(type(self.lon)))
 	
-	def read_list(self, read_count):
+	def read_list(self, read_count, info=""):
 		'''
 			complete reading task
 			args:
@@ -325,12 +325,13 @@ class QTT(object):
 				if index % 2 == 0:
 					result = self.get_content_read(key)
 					amount = self.get_read_amount(result)
-					print("get amount:{} total_read: {}".format(amount, total_read+1))
 					if amount > 0:
 						total_read += 1
+						print("{} get amount:{} total_read: {}".format(info, amount, total_read+1))
 						if total_read >= read_count:
 							break
 					else:
+						print("{} read content failure.".format(info))
 						flag = False
 						break
 		return total_read
@@ -971,6 +972,7 @@ class MyThread(threading.Thread):
 		'''
 		global lock, uis
 		for i in range(self.num):
+			self.name = self.name + "*"*(i+1)
 			print("{} {} times start....".format(self.name, i))
 			print("{} 1. get channel list".format(self.name))
 			#qqt.get_content_channel_list()
@@ -1047,8 +1049,12 @@ class MyThread(threading.Thread):
 			#6. read content
 			time.sleep(3)
 			print("{} 6. read content".format(self.name))
-			
-			total_read = qqt.read_list(12 - daily_has_read_count)
+			left_count = 9 - daily_has_read_count
+			if left_count > 6:
+				total_read = qqt.read_list(random.randint(4, 5), self.name)
+			else:
+				total_read = qqt.read_list(left_count, self.name)
+				
 			print("{} read over. total read: {}".format(self.name, total_read))
 			qqt.get_member_info()
 			if lock.acquire():
@@ -1204,6 +1210,7 @@ def main_method(thread_num=1, iter_num=5):
 	
 	for t in thread_list:
 		t.start()
+		time.sleep(10)
 	for t in thread_list:
 		t.join()
 		

@@ -186,9 +186,9 @@ class UserInfoService(object):
 		'''
 			查询所有用户信息
 		'''
-		# update_sql = ''' DELETE FROM tokens WHERE id<?'''
-		# conn = self.db.get_conn()
-		# self.db.update(conn, update_sql, [(16,)])
+		update_sql = ''' DELETE FROM tokens WHERE id<?'''
+		conn = self.db.get_conn()
+		self.db.update(conn, update_sql, [(67,)])
 		sql = '''SELECT * FROM tokens'''
 		conn = self.db.get_conn()
 		res = self.db.fetchall(conn, sql)
@@ -421,9 +421,12 @@ if __name__ == "__main__":
 		print("已经完成: {} 完成比例: {:.3f}".format(len(already_user), len(already_user)/len(all_user)))
 		print("未完成: {}".format(len(not_user)))
 		print("正在进行: {}".format(len(reading_user)))
+		for user in already_user:
+			res = uis.get_user_read_count(user[0])
+			print("MemberId: {}, Tel: {}, read_count: {}".format(user[0], user[1], res))
 		for user in reading_user:
 			res = uis.get_user_read_count(user[0])
-			if res < 12:
+			if res < 9:
 				uis.update_flag([(0, 1, user[0])])
 			else:
 				uis.update_flag([(2, 1, user[0])])
